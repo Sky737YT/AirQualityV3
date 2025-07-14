@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # Replace with your actual published CSV URL
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTxyz123abc/pub?gid=0&single=true&output=csv"
+CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?output=csv"
 
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
