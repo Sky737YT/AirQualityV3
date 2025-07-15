@@ -5,7 +5,6 @@ import altair as alt
 from streamlit_autorefresh import st_autorefresh
 import gspread
 from google.oauth2.service_account import Credentials
-import json
 import time
 
 # === Auto-refresh every 5 seconds ===
@@ -18,14 +17,18 @@ st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 try:
     # === Load service account from Streamlit Cloud secrets ===
-    scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+    scopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
     service_account_info = st.secrets["gcp_service_account"].to_dict()
     creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
     client = gspread.authorize(creds)
 
-    # === Open sheet by name ===
-    spreadsheet = client.open("Air Quality V3")  # <-- Replace with your sheet's name
-    worksheet = spreadsheet.worksheet("Live")  # or use get_worksheet(0)
+    # === Open sheet using its unique key (reliable!)
+    # 🔁 Replace this with your actual Google Sheet ID (from the URL)
+    spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")  # <-- 👈 PASTE ID HERE
+    worksheet = spreadsheet.worksheet("Live")
 
     # === Read full sheet data
     data = worksheet.get_all_values()
