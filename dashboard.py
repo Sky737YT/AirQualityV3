@@ -8,7 +8,7 @@ import time
 # === Refresh every 5 seconds ===
 st_autorefresh(interval=5000, key="datarefresh")
 
-# === Google Sheets CSV with cache-busting ===
+# === Google Sheet CSV with cache-busting ===
 CSV_URL_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
 CSV_URL = CSV_URL_BASE + f"&cachebuster={int(time.time())}"
 
@@ -20,7 +20,8 @@ try:
     df = pd.read_csv(CSV_URL)
 
     # Clean and convert relevant columns
-    df = df.dropna(subset=["Lat", "Lon"])
+    df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
+    df = df.dropna(subset=["Lat", "Lon", "Timestamp"])
     df["Lat"] = pd.to_numeric(df["Lat"], errors="coerce")
     df["Lon"] = pd.to_numeric(df["Lon"], errors="coerce")
     df["AGL"] = pd.to_numeric(df["AGL"], errors="coerce")
@@ -30,7 +31,10 @@ try:
     df["PM10"] = pd.to_numeric(df["PM10"], errors="coerce")
     df["Temp"] = pd.to_numeric(df["Temp"], errors="coerce")
 
-    # === ✅ Filter out invalid or startup rows ===
+    # Sort rows by timestamp (newest at bottom)
+    df = df.sort_values("Timestamp", ascending=True).reset_index(drop=True)
+
+    # Filter out startup/invalid data
     df = df[
         (df["CO2"] > 0) &
         (df["PM1"] > 0) &
@@ -40,7 +44,7 @@ try:
         (df["Temp"] > 0)
     ].copy()
 
-    # === Live metrics ===
+    # === Live snapshot ===
     latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2 = st.columns(2)
@@ -53,7 +57,7 @@ try:
     if latest["PM2.5"] > 35:
         st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
-    # === Latest rows table ===
+    # === Latest sensor rows ===
     st.subheader("🧾 Latest Sensor Rows")
     df_display = df.tail(5).reset_index(drop=True)
     st.dataframe(df_display, use_container_width=True)
@@ -71,7 +75,7 @@ try:
         if col in df.columns:
             st.altair_chart(raw_chart(col), use_container_width=True)
 
-    # === 3D GPS Position Map ===
+    # === 3D Map of GPS position + AGL ===
     st.subheader("📍 3D GPS Position Map (AGL Elevation)")
     map_df = df[["Lat", "Lon", "AGL"]].dropna()
 
