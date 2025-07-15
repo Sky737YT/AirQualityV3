@@ -3,27 +3,39 @@ import pandas as pd
 import pydeck as pdk
 import altair as alt
 from streamlit_autorefresh import st_autorefresh
+import gspread
+from google.oauth2.service_account import Credentials
+import json
 import time
 
 # === Auto-refresh every 5 seconds ===
 st_autorefresh(interval=5000, key="datarefresh")
 
-# === Google Sheet CSV with cache-busting ===
-CSV_URL_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
-CSV_URL = CSV_URL_BASE + f"&cachebuster={int(time.time())}"
-
-# === Page setup ===
+# === Page config ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
-st.caption("Auto-refreshes every 5 seconds from Google Sheets")
+st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 try:
-    df = pd.read_csv(CSV_URL)
+    # === Load service account from Streamlit Cloud secrets ===
+    service_account_info = st.secrets["gcp_service_account"]
+    creds = Credentials.from_service_account_info(service_account_info, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
+    client = gspread.authorize(creds)
 
-    # === Clean & Convert ===
+    # === Open sheet by name ===
+    spreadsheet = client.open("Air Qulaity V3")  # <-- Replace with your sheet's name
+    worksheet = spreadsheet.worksheet("Live")  # or use get_worksheet(0)
+
+    # === Read full sheet data
+    data = worksheet.get_all_values()
+    headers = data[0]
+    rows = data[1:]
+    df = pd.DataFrame(rows, columns=headers)
+
+    # === Clean & convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
     df = df.dropna(subset=["Timestamp"])
-    
+
     for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -51,7 +63,7 @@ try:
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
 
-    # === Full historical charts
+    # === Sensor trends
     st.subheader("📈 Sensor Trends")
 
     def raw_chart_filtered(column_name, threshold=0):
