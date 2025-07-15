@@ -19,26 +19,21 @@ st.caption("Auto-refreshes every 5 seconds from Google Sheets")
 try:
     df = pd.read_csv(CSV_URL)
 
-    # Clean & convert
+    # === Clean & Convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-    df["Lat"] = pd.to_numeric(df["Lat"], errors="coerce")
-    df["Lon"] = pd.to_numeric(df["Lon"], errors="coerce")
-    df["AGL"] = pd.to_numeric(df["AGL"], errors="coerce")
-    df["CO2"] = pd.to_numeric(df["CO2"], errors="coerce")
-    df["PM2.5"] = pd.to_numeric(df["PM2.5"], errors="coerce")
-    df["PM1"] = pd.to_numeric(df["PM1"], errors="coerce")
-    df["PM10"] = pd.to_numeric(df["PM10"], errors="coerce")
-    df["Temp"] = pd.to_numeric(df["Temp"], errors="coerce")
-
     df = df.dropna(subset=["Timestamp"])
-    df = df.sort_values("Timestamp", ascending=True).reset_index(drop=True)
+    df = df.sort_values("Timestamp", ascending=False).reset_index(drop=True)
+
+    for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
 
     if df.empty or "Temp" not in df.columns:
         st.warning("Waiting for valid sensor data to arrive...")
         st.stop()
 
     # === Live snapshot ===
-    latest = df.iloc[-1]
+    latest = df.iloc[0]
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2 = st.columns(2)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
@@ -52,9 +47,9 @@ try:
 
     # === Latest rows
     st.subheader("🧾 Latest Sensor Rows")
-    st.dataframe(df.tail(5).reset_index(drop=True), use_container_width=True)
+    st.dataframe(df.head(5).reset_index(drop=True), use_container_width=True)
 
-    # === Raw sensor trends (with zero filtering for charts only)
+    # === Raw sensor trends (filtered just for charts)
     st.subheader("📈 Sensor Trends (Filtered for Clarity)")
 
     def raw_chart_filtered(column_name, threshold=0):
