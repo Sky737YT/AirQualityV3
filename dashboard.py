@@ -12,6 +12,7 @@ st_autorefresh(interval=5000, key="datarefresh")
 CSV_URL_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
 CSV_URL = CSV_URL_BASE + f"&cachebuster={int(time.time())}"
 
+# === Page setup ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets")
@@ -22,7 +23,7 @@ try:
     # === Clean & Convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
     df = df.dropna(subset=["Timestamp"])
-    df = df.sort_values("Timestamp", ascending=False).reset_index(drop=True)
+    df = df.tail(4).reset_index(drop=True)  # Get last 4 rows only, no sorting
 
     for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp"]:
         if col in df.columns:
@@ -33,7 +34,7 @@ try:
         st.stop()
 
     # === Live snapshot ===
-    latest = df.iloc[0]
+    latest = df.iloc[-1]  # Use the last row as the most recent
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2 = st.columns(2)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
@@ -47,10 +48,10 @@ try:
 
     # === Latest rows
     st.subheader("🧾 Latest Sensor Rows")
-    st.dataframe(df.head(5).reset_index(drop=True), use_container_width=True)
+    st.dataframe(df.reset_index(drop=True), use_container_width=True)
 
-    # === Raw sensor trends (filtered just for charts)
-    st.subheader("📈 Sensor Trends (Filtered for Clarity)")
+    # === Sensor trends (limited)
+    st.subheader("📈 Sensor Trends (Last 4 Rows Only)")
 
     def raw_chart_filtered(column_name, threshold=0):
         chart_df = df[df[column_name] > threshold]
@@ -60,7 +61,7 @@ try:
         return alt.Chart(chart_df).mark_line().encode(
             x=alt.X("Timestamp:T", title="Time"),
             y=alt.Y(f"{column_name}:Q", title=column_name)
-        ).properties(title=f"{column_name} Over Time")
+        ).properties(title=f"{column_name} Over Time (Last 4 Readings)")
 
     for col in ["CO2", "PM1", "PM2.5", "PM10"]:
         if col in df.columns:
