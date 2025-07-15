@@ -18,8 +18,9 @@ st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 try:
     # === Load service account from Streamlit Cloud secrets ===
-    service_account_info = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(service_account_info, scopes=["https://www.googleapis.com/auth/spreadsheets.readonly"])
+    scopes = ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+    service_account_info = st.secrets["gcp_service_account"].to_dict()
+    creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
     client = gspread.authorize(creds)
 
     # === Open sheet by name ===
