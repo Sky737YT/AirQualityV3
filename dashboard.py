@@ -3,12 +3,14 @@ import pandas as pd
 import pydeck as pdk
 import altair as alt
 from streamlit_autorefresh import st_autorefresh
+import time
 
 # === Refresh every 5 seconds ===
 st_autorefresh(interval=5000, key="datarefresh")
 
-# === CSV Source ===
-CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
+# === Google Sheet CSV with cachebuster ===
+CSV_URL_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
+CSV_URL = CSV_URL_BASE + f"&cachebuster={int(time.time())}"
 
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
@@ -17,7 +19,7 @@ st.caption("Auto-refreshes every 5 seconds from Google Sheets")
 try:
     df = pd.read_csv(CSV_URL)
 
-    # Clean and convert relevant columns
+    # Clean up data
     df = df.dropna(subset=["Lat", "Lon"])
     df["Lat"] = pd.to_numeric(df["Lat"], errors="coerce")
     df["Lon"] = pd.to_numeric(df["Lon"], errors="coerce")
@@ -28,41 +30,38 @@ try:
     df["PM10"] = pd.to_numeric(df["PM10"], errors="coerce")
     df["Temp"] = pd.to_numeric(df["Temp"], errors="coerce")
 
-    # === LIVE metrics: Temperature and AGL ===
+    # === Live snapshot ===
     latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2 = st.columns(2)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
     col2.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
-    # === Air Quality Warnings ===
+    # === Warnings ===
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
     if latest["PM2.5"] > 35:
         st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
-    # === Latest Rows Table (No row numbers) ===
+    # === Latest rows table ===
     st.subheader("🧾 Latest Sensor Rows")
     df_display = df.tail(5).reset_index(drop=True)
     st.dataframe(df_display, use_container_width=True)
 
-    # === Trend Line Charts ===
-    st.subheader("📈 Sensor Trends with Trend Lines")
+    # === Raw line charts ===
+    st.subheader("📈 Raw Sensor Trends")
 
-    def trend_chart(column_name):
-        base = alt.Chart(df).mark_line().encode(
+    def raw_chart(column_name):
+        return alt.Chart(df).mark_line().encode(
             x=alt.X("Timestamp:T", title="Time"),
             y=alt.Y(f"{column_name}:Q", title=column_name)
-        )
-        trend = base.transform_regression('Timestamp', column_name).mark_line(color='red')
-        return base + trend
+        ).properties(title=f"{column_name} over time")
 
-    trend_cols = ["CO2", "PM1", "PM2.5", "PM10"]
-    for col in trend_cols:
+    for col in ["CO2", "PM1", "PM2.5", "PM10"]:
         if col in df.columns:
-            st.altair_chart(trend_chart(col), use_container_width=True)
+            st.altair_chart(raw_chart(col), use_container_width=True)
 
-    # === 3D GPS Map (AGL as Column Height) ===
+    # === 3D GPS Position Map ===
     st.subheader("📍 3D GPS Position Map (AGL Elevation)")
     map_df = df[["Lat", "Lon", "AGL"]].dropna()
 

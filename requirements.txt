@@ -3,3 +3,4 @@ pandas
 pydeck
 altair
 streamlit-autorefresh
+time
