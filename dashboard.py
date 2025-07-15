@@ -51,11 +51,12 @@ try:
     # === Live snapshot (last row only) ===
     latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
     col2.metric("Humidity (%)", f"{latest['Hum']}")
     col3.metric("PM2.5 (µg/m³)", f"{latest['PM2.5']}")
-    col4.metric("Altitude AGL (ft)", f"{latest['AGL']}")
+    col4.metric("CO2 (ppm)", f"{latest['CO2']}")
+    col5.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
     # === Warnings
     if latest["CO2"] > 1000:
