@@ -8,7 +8,7 @@ import time
 # === Refresh every 5 seconds ===
 st_autorefresh(interval=5000, key="datarefresh")
 
-# === Google Sheet CSV with cachebuster ===
+# === Google Sheets CSV with cache-busting ===
 CSV_URL_BASE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS1iTT7WRip-kWXp8BP3nt9AUj_0GlO1g0vCf0kH4TrkpDeWfCmxSQGflGOSQKe1xhBCTSPQYpq--b3/pub?gid=1212685962&single=true&output=csv"
 CSV_URL = CSV_URL_BASE + f"&cachebuster={int(time.time())}"
 
@@ -19,7 +19,7 @@ st.caption("Auto-refreshes every 5 seconds from Google Sheets")
 try:
     df = pd.read_csv(CSV_URL)
 
-    # Clean up data
+    # Clean and convert relevant columns
     df = df.dropna(subset=["Lat", "Lon"])
     df["Lat"] = pd.to_numeric(df["Lat"], errors="coerce")
     df["Lon"] = pd.to_numeric(df["Lon"], errors="coerce")
@@ -30,7 +30,17 @@ try:
     df["PM10"] = pd.to_numeric(df["PM10"], errors="coerce")
     df["Temp"] = pd.to_numeric(df["Temp"], errors="coerce")
 
-    # === Live snapshot ===
+    # === ✅ Filter out invalid or startup rows ===
+    df = df[
+        (df["CO2"] > 0) &
+        (df["PM1"] > 0) &
+        (df["PM2.5"] > 0) &
+        (df["PM10"] > 0) &
+        (df["AGL"] > -10) &
+        (df["Temp"] > 0)
+    ].copy()
+
+    # === Live metrics ===
     latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2 = st.columns(2)
