@@ -23,7 +23,7 @@ try:
     client = gspread.authorize(creds)
 
     # === Open sheet by name ===
-    spreadsheet = client.open("Air Qulaity V3")  # <-- Replace with your sheet's name
+    spreadsheet = client.open("Air Quality V3")  # <-- Replace with your sheet's name
     worksheet = spreadsheet.worksheet("Live")  # or use get_worksheet(0)
 
     # === Read full sheet data
