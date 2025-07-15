@@ -3,3 +3,5 @@ pandas
 pydeck
 altair
 streamlit-autorefresh
+gspread
+google-auth
