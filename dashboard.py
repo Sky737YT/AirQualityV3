@@ -23,9 +23,8 @@ try:
     # === Clean & Convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
     df = df.dropna(subset=["Timestamp"])
-    df = df.tail(4).reset_index(drop=True)  # Get last 4 rows only, no sorting
-
-    for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp"]:
+    
+    for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -33,12 +32,14 @@ try:
         st.warning("Waiting for valid sensor data to arrive...")
         st.stop()
 
-    # === Live snapshot ===
-    latest = df.iloc[-1]  # Use the last row as the most recent
+    # === Live snapshot (last row only) ===
+    latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
-    col1, col2 = st.columns(2)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
-    col2.metric("Altitude AGL (ft)", f"{latest['AGL']}")
+    col2.metric("Humidity (%)", f"{latest['Hum']}")
+    col3.metric("PM2.5 (µg/m³)", f"{latest['PM2.5']}")
+    col4.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
     # === Warnings
     if latest["CO2"] > 1000:
@@ -46,12 +47,12 @@ try:
     if latest["PM2.5"] > 35:
         st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
-    # === Latest rows
+    # === Latest row table
     st.subheader("🧾 Latest Sensor Rows")
-    st.dataframe(df.reset_index(drop=True), use_container_width=True)
+    st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
 
-    # === Sensor trends (limited)
-    st.subheader("📈 Sensor Trends (Last 4 Rows Only)")
+    # === Full historical charts
+    st.subheader("📈 Sensor Trends")
 
     def raw_chart_filtered(column_name, threshold=0):
         chart_df = df[df[column_name] > threshold]
@@ -61,9 +62,9 @@ try:
         return alt.Chart(chart_df).mark_line().encode(
             x=alt.X("Timestamp:T", title="Time"),
             y=alt.Y(f"{column_name}:Q", title=column_name)
-        ).properties(title=f"{column_name} Over Time (Last 4 Readings)")
+        ).properties(title=f"{column_name} Over Time")
 
-    for col in ["CO2", "PM1", "PM2.5", "PM10"]:
+    for col in ["CO2", "PM1", "PM2.5", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             chart = raw_chart_filtered(col)
             if chart:
