@@ -103,12 +103,12 @@ try:
             y=alt.Y(f"{column_name}:Q", title=display_name)
         ).properties(title=f"{display_name} Over Time")
 
-
     for col in ["CO2", "PM1", "PM2.5", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             chart = raw_chart_filtered(col)
             if chart:
                 st.altair_chart(chart, use_container_width=True)
+
 
     # === 3D Spheres Using ScenegraphLayer ===
     st.subheader("📍 3D PM2.5 AQI Map")
