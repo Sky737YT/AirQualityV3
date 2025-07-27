@@ -6,13 +6,15 @@ from streamlit_autorefresh import st_autorefresh
 import gspread
 from google.oauth2.service_account import Credentials
 import time
+import simplekml
+from io import BytesIO
 
 # === Auto-refresh every 5 seconds ===
 st_autorefresh(interval=5000, key="datarefresh")
 
 # === Page config ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
-st.title("📡 Real-Time LoRa Sensor Dashboard")
+st.title("📱 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 try:
@@ -95,7 +97,7 @@ try:
                 st.altair_chart(chart, use_container_width=True)
 
     # === 3D Spheres Using ScenegraphLayer ===
-    st.subheader("📍 3D Floating Spheres Color-Coded by PM2.5 AQI")
+    st.subheader("📍 3D PM2.5 AQI Map")
 
     map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
     map_df = map_df.astype({
@@ -150,7 +152,7 @@ try:
         )
         st.pydeck_chart(r)
 
-        st.markdown("### 🗘️ AQI Color Legend (PM2.5)")
+        st.markdown("### 🖘️ AQI Color Legend (PM2.5)")
         st.markdown("""
         <div style='display: flex; gap: 16px; flex-wrap: wrap;'>
             <div style='background-color: rgb(0,228,0); width: 20px; height: 20px; display: inline-block;'></div> Good (≤12)
@@ -161,6 +163,44 @@ try:
             <div style='background-color: rgb(126,0,35); width: 20px; height: 20px; display: inline-block;'></div> Hazardous (>250.4)
         </div>
         """, unsafe_allow_html=True)
+
+        # === KML Export Button ===
+        def pm25_to_kml_color(pm):
+            if pm <= 12:
+                return simplekml.Color.rgb(0, 228, 0)
+            elif pm <= 35.4:
+                return simplekml.Color.rgb(255, 255, 0)
+            elif pm <= 55.4:
+                return simplekml.Color.rgb(255, 126, 0)
+            elif pm <= 150.4:
+                return simplekml.Color.rgb(255, 0, 0)
+            elif pm <= 250.4:
+                return simplekml.Color.rgb(143, 63, 151)
+            else:
+                return simplekml.Color.rgb(126, 0, 35)
+
+        kml = simplekml.Kml()
+        for _, row in map_df.iterrows():
+            description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
+            pnt = kml.newpoint(coords=[(row["Lon"], row["Lat"])] )
+            pnt.altitude = row["AGL"]
+            pnt.altitudemode = simplekml.AltitudeMode.relativetoground
+            pnt.extrude = 1
+            pnt.description = description
+            pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png"
+            pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
+
+        kml_buffer = BytesIO()
+        kml.save(kml_buffer)
+        kml_buffer.seek(0)
+
+        st.download_button(
+            label="📅 Download .KML of Latest Session",
+            data=kml_buffer,
+            file_name="latest_session.kml",
+            mime="application/vnd.google-earth.kml+xml"
+        )
+
     else:
         st.info("No GPS data to show on the map yet.")
 
