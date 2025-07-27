@@ -179,8 +179,16 @@ try:
             else:
                 return simplekml.Color.rgb(126, 0, 35)
 
+        export_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
+        export_df = export_df.astype({
+            "Lat": "float64",
+            "Lon": "float64",
+            "PM2.5": "float64",
+            "AGL": "float64"
+        })
+
         kml = simplekml.Kml()
-        for _, row in map_df.iterrows():
+        for _, row in export_df.iterrows():
             description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
             pnt = kml.newpoint(coords=[(row["Lon"], row["Lat"])])
             pnt.altitude = row["AGL"]
@@ -195,14 +203,8 @@ try:
         kml_io.seek(0)
 
         st.download_button(
-            label="📅 Download .KML for Google Earth",
+            label="📥 Download .KML for Google Earth",
             data=kml_io,
             file_name="latest_session.kml",
             mime="application/vnd.google-earth.kml+xml"
         )
-
-    else:
-        st.info("No GPS data to show on the map yet.")
-
-except Exception as e:
-    st.error(f"❌ Failed to load data: {e}")
