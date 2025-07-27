@@ -94,30 +94,30 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === AQI Color Mapping for Scatterplot ===
-    st.subheader("📍 GPS Points Color-Coded by PM2.5 AQI")
+    # === 3D AQI Scatterplot Map ===
+    st.subheader("📍 3D GPS Points (AGL) Color-Coded by PM2.5 AQI")
 
-    map_df = df.dropna(subset=["Lat", "Lon", "PM2.5"])
+    map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
     map_df = map_df.astype({
         "Lat": "float64",
         "Lon": "float64",
         "PM2.5": "float64",
-        "AGL": "float64" if "AGL" in df.columns else "float64",
+        "AGL": "float64"
     })
 
     def pm25_to_rgb(pm):
         if pm <= 12:
-            return [0, 228, 0]       # Good
+            return [0, 228, 0]
         elif pm <= 35.4:
-            return [255, 255, 0]     # Moderate
+            return [255, 255, 0]
         elif pm <= 55.4:
-            return [255, 126, 0]     # Unhealthy for sensitive groups
+            return [255, 126, 0]
         elif pm <= 150.4:
-            return [255, 0, 0]       # Unhealthy
+            return [255, 0, 0]
         elif pm <= 250.4:
-            return [143, 63, 151]    # Very Unhealthy
+            return [143, 63, 151]
         else:
-            return [126, 0, 35]      # Hazardous
+            return [126, 0, 35]
 
     map_df[["color_r", "color_g", "color_b"]] = map_df["PM2.5"].apply(
         lambda pm: pd.Series(pm25_to_rgb(pm))
@@ -127,7 +127,7 @@ try:
         layer = pdk.Layer(
             "ScatterplotLayer",
             data=map_df,
-            get_position='[Lon, Lat]',
+            get_position='[Lon, Lat, AGL]',
             get_radius=30,
             get_fill_color='[color_r, color_g, color_b, 160]',
             pickable=True,
@@ -138,7 +138,8 @@ try:
             latitude=map_df["Lat"].mean(),
             longitude=map_df["Lon"].mean(),
             zoom=14,
-            pitch=0,
+            pitch=60,
+            bearing=30
         )
 
         r = pdk.Deck(
@@ -148,8 +149,7 @@ try:
         )
         st.pydeck_chart(r)
 
-        # === AQI Color Legend ===
-        st.markdown("### 🗺️ AQI Color Legend (PM2.5)")
+        st.markdown("### 🗘️ AQI Color Legend (PM2.5)")
         st.markdown("""
         <div style='display: flex; gap: 16px; flex-wrap: wrap;'>
             <div style='background-color: rgb(0,228,0); width: 20px; height: 20px; display: inline-block;'></div> Good (≤12)
