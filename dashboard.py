@@ -34,6 +34,8 @@ try:
     headers = data[0]
     rows = data[1:]
     df = pd.DataFrame(rows, columns=headers)
+    st.write("Columns in sheet:", df.columns.tolist())
+
 
     # === Clean & convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
