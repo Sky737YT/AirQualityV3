@@ -90,6 +90,7 @@ try:
     # === 3D GPS Position Map
     st.subheader("📍 3D GPS Position Map (AGL Elevation)")
     map_df = df.dropna(subset=["Lat", "Lon", "AGL"])
+    map_df = map_df.astype({"Lat": "float64", "Lon": "float64", "AGL": "float64"})
 
     if not map_df.empty:
         layer = pdk.Layer(
