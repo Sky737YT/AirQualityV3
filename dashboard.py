@@ -14,7 +14,7 @@ st_autorefresh(interval=5000, key="datarefresh")
 
 # === Page config ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
-st.title("📱 Real-Time LoRa Sensor Dashboard")
+st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 try:
@@ -72,7 +72,7 @@ try:
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
     if latest["PM2.5"] > 35:
-        st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
+        st.warning(f"⚠️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
@@ -175,7 +175,7 @@ try:
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
         ))
 
-        st.markdown("### 🖘️ AQI Color Legend (PM2.5)")
+        st.markdown("### AQI Color Legend (PM2.5)")
         st.markdown("""
         <div style='display: flex; gap: 16px; flex-wrap: wrap;'>
             <div style='background-color: rgb(0,228,0); width: 20px; height: 20px; display: inline-block;'></div> Good (≤12)
@@ -186,7 +186,7 @@ try:
             <div style='background-color: rgb(126,0,35); width: 20px; height: 20px; display: inline-block;'></div> Hazardous (>250.4)
         </div>
         """, unsafe_allow_html=True)
-
+        st.subheader("")
         # CO2 Map
         st.subheader("📍 3D CO2 Map")
 
@@ -215,7 +215,7 @@ try:
             tooltip={"text": "CO2: {CO2} ppm\nAGL: {AGL} ft"}
         ))
 
-        st.markdown("### 🖘️ CO2 Color Legend (ppm)")
+        st.markdown("### CO2 Color Legend (ppm)")
         st.markdown("""
         <div style='display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 1em;'>
             <div style='background-color: rgb(0,200,0); width: 20px; height: 20px; display: inline-block;'></div> Normal (≤600)
@@ -226,7 +226,7 @@ try:
             <div style='background-color: rgb(126,0,35); width: 20px; height: 20px; display: inline-block;'></div> Dangerous (>5000)
         </div>
         """, unsafe_allow_html=True)
-
+        st.subheader("")
         # === DOWNLOAD SECTION ===
         st.subheader("📥 Downloads")
 
