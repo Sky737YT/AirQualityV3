@@ -103,6 +103,9 @@ try:
             x=alt.X("Timestamp:T", title="Time"),
             y=alt.Y(f"{column_name}:Q", title=display_name)
         ).properties(title=f"{display_name} Over Time")
+    st.write("PM2.5 unique values:", df["PM2.5"].unique())
+    st.write("PM2.5 dtype:", df["PM2.5"].dtype)
+    st.write("Recent PM2.5 rows:", df[["Timestamp", "PM2.5"]].tail())
 
     for col in ["CO2", "PM1", "PM2.5", "PM10", "Temp", "Hum"]:
         if col in df.columns:
