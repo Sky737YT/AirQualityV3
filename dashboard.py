@@ -47,7 +47,7 @@ try:
     # === Detect latest session based on time gaps ===
     df = df.sort_values("Timestamp")
     df["TimeDiff"] = df["Timestamp"].diff().dt.total_seconds().fillna(0)
-    gap_threshold = 300  # 5 minutes
+    gap_threshold = 120  # 2 minutes
     df["BlockID"] = (df["TimeDiff"] > gap_threshold).cumsum()
     latest_block_id = df["BlockID"].iloc[-1]
     df = df[df["BlockID"] == latest_block_id].copy()
@@ -94,8 +94,8 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D AQI Scatterplot Map ===
-    st.subheader("📍 3D GPS Points (AGL) Color-Coded by PM2.5 AQI")
+    # === 3D Spheres Using ScenegraphLayer ===
+    st.subheader("📍 3D Floating Spheres Color-Coded by PM2.5 AQI")
 
     map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
     map_df = map_df.astype({
@@ -125,13 +125,14 @@ try:
 
     if not map_df.empty:
         layer = pdk.Layer(
-            "ScatterplotLayer",
+            "ScenegraphLayer",
             data=map_df,
             get_position='[Lon, Lat, AGL]',
-            get_radius=30,
-            get_fill_color='[color_r, color_g, color_b, 160]',
+            scenegraph="https://raw.githubusercontent.com/Sky737YT/AirQualityV3/main/sphere.glb",
+            size_scale=20,
+            get_color='[color_r, color_g, color_b]',
             pickable=True,
-            auto_highlight=True,
+            _animations=False,
         )
 
         view_state = pdk.ViewState(
