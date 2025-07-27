@@ -198,15 +198,12 @@ try:
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png"
             pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
 
-        kml_io = BytesIO()
-        kml.savefp(kml_io)
-        kml_io.seek(0)
-
+        kml_io = BytesIO(kml.kml().encode("utf-8"))
         st.download_button(
             label="📥 Download .KML for Google Earth",
             data=kml_io,
             file_name="latest_session.kml",
             mime="application/vnd.google-earth.kml+xml"
-        )
+)
 except Exception as e:
     st.error(f"❌ Failed to load data: {e}")
