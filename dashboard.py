@@ -129,7 +129,7 @@ try:
             data=map_df,
             get_position='[Lon, Lat, AGL]',
             scenegraph="https://raw.githubusercontent.com/Sky737YT/AirQualityV3/main/sphere.glb",
-            size_scale=10,
+            size_scale=1,
             get_color='[color_r, color_g, color_b]',
             pickable=True,
             _animations=False,
