@@ -15,6 +15,9 @@ st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
+# === Set Mapbox Token from secrets ===
+pdk.settings.mapbox_api_key = "pk.eyJ1Ijoic2t5NzM3IiwiYSI6ImNtZGx5em13MTFlcWUyaXEwcjY2OHhvdnAifQ.bLtCMmkafkLvlhLUUrF75Q"
+
 try:
     # === Load service account from Streamlit Cloud secrets ===
     scopes = [
@@ -94,7 +97,7 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D Spheres Using ScenegraphLayer with Satellite ===
+    # === 3D Spheres Using ScenegraphLayer with Mapbox Satellite ===
     st.subheader("📍 3D Floating Spheres Color-Coded by PM2.5 AQI")
 
     map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
@@ -128,7 +131,7 @@ try:
     pitch = st.slider("Map View Pitch", 0, 90, 60)
 
     if not map_df.empty:
-        scene_layer = pdk.Layer(
+        layer = pdk.Layer(
             "ScenegraphLayer",
             data=map_df,
             get_position='[Lon, Lat, AGL]',
@@ -137,27 +140,6 @@ try:
             get_color='[color_r, color_g, color_b]',
             pickable=True,
             _animations=False,
-        )
-
-        tile_layer = pdk.Layer(
-            "TileLayer",
-            minZoom=0,
-            maxZoom=19,
-            tile_size=256,
-            get_tile_data="""
-                function({x, y, z}) {
-                    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
-                }
-            """,
-            render_sub_layers="""
-                function(tile) {
-                    return new deck.BitmapLayer(tile.layer.props.id, {
-                        data: null,
-                        image: tile.data,
-                        bounds: tile.bbox
-                    });
-                }
-            """
         )
 
         view_state = pdk.ViewState(
@@ -169,8 +151,8 @@ try:
         )
 
         r = pdk.Deck(
-            map_style=None,
-            layers=[tile_layer, scene_layer],
+            map_style="mapbox://styles/mapbox/standard-satellite",
+            layers=[layer],
             initial_view_state=view_state,
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
         )
