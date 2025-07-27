@@ -94,7 +94,7 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D Spheres Using ScenegraphLayer with Open Source Satellite ===
+    # === 3D Spheres Using ScenegraphLayer with Satellite ===
     st.subheader("📍 3D Floating Spheres Color-Coded by PM2.5 AQI")
 
     map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
@@ -141,12 +141,23 @@ try:
 
         tile_layer = pdk.Layer(
             "TileLayer",
-            data=None,
-            tile_size=256,
             minZoom=0,
             maxZoom=19,
-            opacity=1,
-            get_tile_url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            tile_size=256,
+            get_tile_data="""
+                function({x, y, z}) {
+                    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`;
+                }
+            """,
+            render_sub_layers="""
+                function(tile) {
+                    return new deck.BitmapLayer(tile.layer.props.id, {
+                        data: null,
+                        image: tile.data,
+                        bounds: tile.bbox
+                    });
+                }
+            """
         )
 
         view_state = pdk.ViewState(
