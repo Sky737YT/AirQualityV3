@@ -40,7 +40,7 @@ try:
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
     df = df.dropna(subset=["Timestamp"])
 
-    for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp", "Hum"]:
+    for col in ["Lat", "Lon", "AGL", "CO2", "PM2_5", "PM1", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -66,14 +66,14 @@ try:
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Temperature (°F)", f"{latest['Temp']}")
     col2.metric("Humidity (%)", f"{latest['Hum']}")
-    col3.metric("PM2.5 (µg/m³)", f"{latest['PM2.5']}")
+    col3.metric("PM2.5 (µg/m³)", f"{latest['PM2_5']}")
     col4.metric("CO2 (ppm)", f"{latest['CO2']}")
     col5.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
     if latest["PM2.5"] > 35:
-        st.warning(f"⚠️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
+        st.warning(f"⚠️ Elevated PM2.5: {latest['PM2_5']} µg/m³")
 
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
@@ -88,7 +88,7 @@ try:
             "Hum": "Humidity (%)",
             "CO2": "CO2 (ppm)",
             "PM1": "PM1 (µg/m³)",
-            "PM2.5": "PM2.5 (µg/m³)",
+            "PM2_5": "PM2.5 (µg/m³)",
             "PM10": "PM10 (µg/m³)"
         }
 
@@ -103,11 +103,8 @@ try:
             x=alt.X("Timestamp:T", title="Time"),
             y=alt.Y(f"{column_name}:Q", title=display_name)
         ).properties(title=f"{display_name} Over Time")
-    st.write("PM2.5 unique values:", df["PM2.5"].unique())
-    st.write("PM2.5 dtype:", df["PM2.5"].dtype)
-    st.write("Recent PM2.5 rows:", df[["Timestamp", "PM2.5"]].tail())
 
-    for col in ["CO2", "PM1", "PM2.5", "PM10", "Temp", "Hum"]:
+    for col in ["CO2", "PM1", "PM2_5", "PM10", "Temp", "Hum"]:
         if col in df.columns:
             chart = raw_chart_filtered(col)
             if chart:
@@ -121,7 +118,7 @@ try:
     map_df = map_df.astype({
         "Lat": "float64",
         "Lon": "float64",
-        "PM2.5": "float64",
+        "PM2_5": "float64",
         "AGL": "float64"
     })
 
@@ -269,7 +266,7 @@ try:
             pnt.altitude = row["AGL"]
             pnt.altitudemode = simplekml.AltitudeMode.relativetoground
             pnt.extrude = 1
-            pnt.description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
+            pnt.description = f"PM2.5: {row['PM2_5']} µg/m³\nAGL: {row['AGL']} ft"
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shaded_dot.png"
             pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
 
