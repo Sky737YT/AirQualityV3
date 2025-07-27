@@ -39,7 +39,8 @@ try:
 
     # === Clean & convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-    df = df.dropna(subset=["Timestamp"])
+    df["PM2.5"] = pd.to_numeric(df["PM2.5"], errors="coerce")
+
 
     for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp", "Hum"]:
         if col in df.columns:
