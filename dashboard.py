@@ -81,7 +81,7 @@ try:
     # === Charts ===
     st.subheader("📈 Sensor Trends")
 
-    def raw_chart_filtered(column_name, threshold=0):
+    def raw_chart_filtered(column_name, threshold=-1):
         # Friendly display names
         label_map = {
             "Temp": "Temperature (°F)",
