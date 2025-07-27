@@ -16,7 +16,7 @@ st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 # === Set Mapbox Token ===
-pdk.settings.mapbox_api_key = st.secrets["pk.eyJ1Ijoic2t5NzM3IiwiYSI6ImNtZGx5em13MTFlcWUyaXEwcjY2OHhvdnAifQ.bLtCMmkafkLvlhLUUrF75Q"]
+pdk.settings.mapbox_api_key = st.secrets["MAPBOX_TOKEN"]
 
 try:
     # === Load service account from Streamlit Cloud secrets ===
