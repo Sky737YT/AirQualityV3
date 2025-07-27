@@ -190,16 +190,16 @@ try:
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png"
             pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
 
-        kml_buffer = BytesIO()
-        kml.save(kml_buffer)
-        kml_buffer.seek(0)
+        kml_io = BytesIO()
+        kml.save(kml_io)
+        kml_bytes = kml_io.getvalue()
 
         st.download_button(
-            label="📅 Download .KML of Latest Session",
-            data=kml_buffer,
+            label="📥 Download .KML for Google Earth",
+            data=kml_bytes,
             file_name="latest_session.kml",
             mime="application/vnd.google-earth.kml+xml"
-        )
+)
 
     else:
         st.info("No GPS data to show on the map yet.")
