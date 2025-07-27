@@ -16,7 +16,7 @@ st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
 # === Set Mapbox Token from secrets ===
-pdk.settings.mapbox_api_key = "pk.eyJ1Ijoic2t5NzM3IiwiYSI6ImNtZGx5em13MTFlcWUyaXEwcjY2OHhvdnAifQ.bLtCMmkafkLvlhLUUrF75Q"
+pdk.settings.mapbox_api_key = "pk.eyJ1Ijoic2t5NzM3IiwiYSI6ImNtYTBremdjYzI0c3UyaW13NGZ6NG12N2IifQ.vVnW4Do5dZVtQNBgOaYC-w"
 
 try:
     # === Load service account from Streamlit Cloud secrets ===
@@ -151,7 +151,7 @@ try:
         )
 
         r = pdk.Deck(
-            map_style="mapbox://styles/mapbox/standard-satellite",
+            map_style="mapbox://styles/sky737/cmdlzoqfg006001s29a636diz",
             layers=[layer],
             initial_view_state=view_state,
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
