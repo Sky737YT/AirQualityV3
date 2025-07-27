@@ -15,9 +15,6 @@ st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
 st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
 
-# === Set Mapbox Token from secrets ===
-pdk.settings.mapbox_api_key = "pk.eyJ1Ijoic2t5NzM3IiwiYSI6ImNtYTBremdjYzI0c3UyaW13NGZ6NG12N2IifQ.vVnW4Do5dZVtQNBgOaYC-w"
-
 try:
     # === Load service account from Streamlit Cloud secrets ===
     scopes = [
@@ -97,7 +94,7 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D Spheres Using ScenegraphLayer with Mapbox Satellite ===
+    # === 3D Spheres Using ScenegraphLayer ===
     st.subheader("📍 3D Floating Spheres Color-Coded by PM2.5 AQI")
 
     map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
@@ -126,17 +123,13 @@ try:
         lambda pm: pd.Series(pm25_to_rgb(pm))
     )
 
-    # === Camera control sliders ===
-    bearing = st.slider("Map View Bearing", 0, 360, 30)
-    pitch = st.slider("Map View Pitch", 0, 90, 60)
-
     if not map_df.empty:
         layer = pdk.Layer(
             "ScenegraphLayer",
             data=map_df,
             get_position='[Lon, Lat, AGL]',
             scenegraph="https://raw.githubusercontent.com/Sky737YT/AirQualityV3/main/sphere.glb",
-            size_scale=20,
+            size_scale=10,
             get_color='[color_r, color_g, color_b]',
             pickable=True,
             _animations=False,
@@ -146,12 +139,11 @@ try:
             latitude=map_df["Lat"].mean(),
             longitude=map_df["Lon"].mean(),
             zoom=14,
-            pitch=pitch,
-            bearing=bearing
+            pitch=60,
+            bearing=30
         )
 
         r = pdk.Deck(
-            map_style="mapbox://styles/sky737/cmdlzoqfg006001s29a636diz",
             layers=[layer],
             initial_view_state=view_state,
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
