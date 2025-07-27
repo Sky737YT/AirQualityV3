@@ -25,11 +25,9 @@ try:
     creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
     client = gspread.authorize(creds)
 
-    # === Open sheet using its unique key ===
+    # === Open sheet ===
     spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")
     worksheet = spreadsheet.worksheet("Live")
-
-    # === Read full sheet data ===
     data = worksheet.get_all_values()
     headers = data[0]
     rows = data[1:]
@@ -43,11 +41,11 @@ try:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # === Filter out GPS 0,0 early ===
+    # === Filter out GPS (0,0) early ===
     df = df[(df["Lat"] != 0) & (df["Lon"] != 0)]
 
-    # === Find most recent continuous data block ===
-    df = df.sort_values("Timestamp")  # ensure it's sorted
+    # === Detect latest session based on time gaps ===
+    df = df.sort_values("Timestamp")
     df["TimeDiff"] = df["Timestamp"].diff().dt.total_seconds().fillna(0)
     gap_threshold = 300  # 5 minutes
     df["BlockID"] = (df["TimeDiff"] > gap_threshold).cumsum()
@@ -55,7 +53,6 @@ try:
     df = df[df["BlockID"] == latest_block_id].copy()
     df.drop(columns=["TimeDiff", "BlockID"], inplace=True)
 
-    # === Stop if still empty after filtering ===
     if df.empty or "Temp" not in df.columns:
         st.warning("Waiting for valid sensor data to arrive...")
         st.stop()
@@ -70,17 +67,15 @@ try:
     col4.metric("CO2 (ppm)", f"{latest['CO2']}")
     col5.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
-    # === Warnings ===
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
     if latest["PM2.5"] > 35:
         st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
-    # === Latest row table ===
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
 
-    # === Sensor trends ===
+    # === Charts ===
     st.subheader("📈 Sensor Trends")
 
     def raw_chart_filtered(column_name, threshold=0):
@@ -99,20 +94,42 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D GPS Position Map ===
-    st.subheader("📍 3D GPS Position Map (AGL Elevation)")
-    map_df = df.dropna(subset=["Lat", "Lon", "AGL"])
-    map_df = map_df.astype({"Lat": "float64", "Lon": "float64", "AGL": "float64"})
+    # === AQI Color Mapping for Scatterplot ===
+    st.subheader("📍 GPS Points Color-Coded by PM2.5 AQI")
+
+    map_df = df.dropna(subset=["Lat", "Lon", "PM2.5"])
+    map_df = map_df.astype({
+        "Lat": "float64",
+        "Lon": "float64",
+        "PM2.5": "float64",
+        "AGL": "float64" if "AGL" in df.columns else "float64",
+    })
+
+    def pm25_to_rgb(pm):
+        if pm <= 12:
+            return [0, 228, 0]       # Good
+        elif pm <= 35.4:
+            return [255, 255, 0]     # Moderate
+        elif pm <= 55.4:
+            return [255, 126, 0]     # Unhealthy for sensitive groups
+        elif pm <= 150.4:
+            return [255, 0, 0]       # Unhealthy
+        elif pm <= 250.4:
+            return [143, 63, 151]    # Very Unhealthy
+        else:
+            return [126, 0, 35]      # Hazardous
+
+    map_df[["color_r", "color_g", "color_b"]] = map_df["PM2.5"].apply(
+        lambda pm: pd.Series(pm25_to_rgb(pm))
+    )
 
     if not map_df.empty:
         layer = pdk.Layer(
-            "ColumnLayer",
+            "ScatterplotLayer",
             data=map_df,
             get_position='[Lon, Lat]',
-            get_elevation="AGL",
-            elevation_scale=10,
-            radius=30,
-            get_fill_color='[200, 30, 0, 160]',
+            get_radius=30,
+            get_fill_color='[color_r, color_g, color_b, 160]',
             pickable=True,
             auto_highlight=True,
         )
@@ -121,11 +138,28 @@ try:
             latitude=map_df["Lat"].mean(),
             longitude=map_df["Lon"].mean(),
             zoom=14,
-            pitch=45,
+            pitch=0,
         )
 
-        r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "AGL: {AGL} ft"})
+        r = pdk.Deck(
+            layers=[layer],
+            initial_view_state=view_state,
+            tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
+        )
         st.pydeck_chart(r)
+
+        # === AQI Color Legend ===
+        st.markdown("### 🗺️ AQI Color Legend (PM2.5)")
+        st.markdown("""
+        <div style='display: flex; gap: 16px; flex-wrap: wrap;'>
+            <div style='background-color: rgb(0,228,0); width: 20px; height: 20px; display: inline-block;'></div> Good (≤12)
+            <div style='background-color: rgb(255,255,0); width: 20px; height: 20px; display: inline-block;'></div> Moderate (12.1–35.4)
+            <div style='background-color: rgb(255,126,0); width: 20px; height: 20px; display: inline-block;'></div> Unhealthy for Sensitive Groups (35.5–55.4)
+            <div style='background-color: rgb(255,0,0); width: 20px; height: 20px; display: inline-block;'></div> Unhealthy (55.5–150.4)
+            <div style='background-color: rgb(143,63,151); width: 20px; height: 20px; display: inline-block;'></div> Very Unhealthy (150.5–250.4)
+            <div style='background-color: rgb(126,0,35); width: 20px; height: 20px; display: inline-block;'></div> Hazardous (>250.4)
+        </div>
+        """, unsafe_allow_html=True)
     else:
         st.info("No GPS data to show on the map yet.")
 
