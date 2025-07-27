@@ -34,13 +34,11 @@ try:
     headers = data[0]
     rows = data[1:]
     df = pd.DataFrame(rows, columns=headers)
-    st.write("Columns in sheet:", df.columns.tolist())
-
+    
 
     # === Clean & convert ===
     df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-    df["PM2.5"] = pd.to_numeric(df["PM2.5"], errors="coerce")
-
+    df = df.dropna(subset=["Timestamp"])
 
     for col in ["Lat", "Lon", "AGL", "CO2", "PM2.5", "PM1", "PM10", "Temp", "Hum"]:
         if col in df.columns:
