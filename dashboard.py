@@ -146,7 +146,7 @@ try:
             minZoom=0,
             maxZoom=19,
             opacity=1,
-            get_tile_url="https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            get_tile_url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
         )
 
         view_state = pdk.ViewState(
