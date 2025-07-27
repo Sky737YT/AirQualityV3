@@ -72,7 +72,7 @@ try:
 
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
-    if latest["PM2.5"] > 35:
+    if latest["PM2_5"] > 35:
         st.warning(f"⚠️ Elevated PM2.5: {latest['PM2_5']} µg/m³")
 
     st.subheader("🧾 Latest Sensor Rows")
@@ -114,7 +114,7 @@ try:
     # === 3D Spheres Using ScenegraphLayer ===
     st.subheader("📍 3D PM2.5 AQI Map")
 
-    map_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
+    map_df = df.dropna(subset=["Lat", "Lon", "PM2_5", "AGL"])
     map_df = map_df.astype({
         "Lat": "float64",
         "Lon": "float64",
@@ -136,7 +136,7 @@ try:
         else:
             return [126, 0, 35]
 
-    map_df[["color_r", "color_g", "color_b"]] = map_df["PM2.5"].apply(
+    map_df[["color_r", "color_g", "color_b"]] = map_df["PM2_5"].apply(
         lambda pm: pd.Series(pm25_to_rgb(pm))
     )
 
@@ -187,7 +187,7 @@ try:
         st.pydeck_chart(pdk.Deck(
             layers=[layer_pm],
             initial_view_state=view_state,
-            tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
+            tooltip={"text": "PM2.5: {PM2_5} µg/m³\nAGL: {AGL} ft"}
         ))
 
         st.markdown("### AQI Color Legend (PM2.5)")
@@ -268,7 +268,7 @@ try:
             pnt.extrude = 1
             pnt.description = f"PM2.5: {row['PM2_5']} µg/m³\nAGL: {row['AGL']} ft"
             pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shaded_dot.png"
-            pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
+            pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2_5"])
 
         kml_io_pm = BytesIO(kml_pm.kml().encode("utf-8"))
 
