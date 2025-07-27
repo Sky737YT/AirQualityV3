@@ -125,8 +125,32 @@ try:
         lambda pm: pd.Series(pm25_to_rgb(pm))
     )
 
-    if not map_df.empty or not df.dropna(subset=["Lat", "Lon", "CO2", "AGL"]).empty:
-        layer = pdk.Layer(
+    co2_df = df.dropna(subset=["Lat", "Lon", "CO2", "AGL"]).astype({
+        "Lat": "float64",
+        "Lon": "float64",
+        "CO2": "float64",
+        "AGL": "float64"
+    })
+
+    def co2_to_rgb(co2):
+        if co2 <= 600:
+            return [0, 200, 0]
+        elif co2 <= 1000:
+            return [255, 255, 0]
+        elif co2 <= 1500:
+            return [255, 126, 0]
+        elif co2 <= 2000:
+            return [255, 0, 0]
+        elif co2 <= 5000:
+            return [143, 63, 151]
+        else:
+            return [126, 0, 35]
+
+    co2_df[["color_r", "color_g", "color_b"]] = co2_df["CO2"].apply(lambda x: pd.Series(co2_to_rgb(x)))
+
+    if not map_df.empty or not co2_df.empty:
+        # PM2.5 Map
+        layer_pm = pdk.Layer(
             "ScenegraphLayer",
             data=map_df,
             get_position='[Lon, Lat, AGL]',
@@ -145,12 +169,11 @@ try:
             bearing=30
         )
 
-        r = pdk.Deck(
-            layers=[layer],
+        st.pydeck_chart(pdk.Deck(
+            layers=[layer_pm],
             initial_view_state=view_state,
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
-        )
-        st.pydeck_chart(r)
+        ))
 
         st.markdown("### 🖘️ AQI Color Legend (PM2.5)")
         st.markdown("""
@@ -164,72 +187,8 @@ try:
         </div>
         """, unsafe_allow_html=True)
 
-        # === KML Export Button ===
-        def pm25_to_kml_color(pm):
-            if pm <= 12:
-                return simplekml.Color.rgb(0, 228, 0)
-            elif pm <= 35.4:
-                return simplekml.Color.rgb(255, 255, 0)
-            elif pm <= 55.4:
-                return simplekml.Color.rgb(255, 126, 0)
-            elif pm <= 150.4:
-                return simplekml.Color.rgb(255, 0, 0)
-            elif pm <= 250.4:
-                return simplekml.Color.rgb(143, 63, 151)
-            else:
-                return simplekml.Color.rgb(126, 0, 35)
-
-        export_df = df.dropna(subset=["Lat", "Lon", "PM2.5", "AGL"])
-        export_df = export_df.astype({
-            "Lat": "float64",
-            "Lon": "float64",
-            "PM2.5": "float64",
-            "AGL": "float64"
-        })
-
-        kml = simplekml.Kml()
-        for _, row in export_df.iterrows():
-            description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
-            pnt = kml.newpoint(coords=[(row["Lon"], row["Lat"])])
-            pnt.altitude = row["AGL"]
-            pnt.altitudemode = simplekml.AltitudeMode.relativetoground
-            pnt.extrude = 1
-            pnt.description = description
-            pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shapes/shaded_dot.png"
-            pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
-
-        kml_io = BytesIO(kml.kml().encode("utf-8"))
-        st.download_button(
-            label="📥 Download .KML for Google Earth",
-            data=kml_io,
-            file_name="latest_session.kml",
-            mime="application/vnd.google-earth.kml+xml"
-)
-        # === CO2 3D Map ===
+        # CO2 Map
         st.subheader("📍 3D CO2 Map")
-
-        co2_df = df.dropna(subset=["Lat", "Lon", "CO2", "AGL"]).astype({
-            "Lat": "float64",
-            "Lon": "float64",
-            "CO2": "float64",
-            "AGL": "float64"
-        })
-
-        def co2_to_rgb(co2):
-            if co2 <= 600:
-                return [0, 200, 0]
-            elif co2 <= 1000:
-                return [255, 255, 0]
-            elif co2 <= 1500:
-                return [255, 126, 0]
-            elif co2 <= 2000:
-                return [255, 0, 0]
-            elif co2 <= 5000:
-                return [143, 63, 151]
-            else:
-                return [126, 0, 35]
-
-        co2_df[["color_r", "color_g", "color_b"]] = co2_df["CO2"].apply(lambda x: pd.Series(co2_to_rgb(x)))
 
         layer_co2 = pdk.Layer(
             "ScenegraphLayer",
@@ -268,7 +227,37 @@ try:
         </div>
         """, unsafe_allow_html=True)
 
-        # === CO2 KML Download ===
+        # === DOWNLOAD SECTION ===
+        st.subheader("📥 Downloads")
+
+        # PM2.5 KML
+        def pm25_to_kml_color(pm):
+            if pm <= 12:
+                return simplekml.Color.rgb(0, 228, 0)
+            elif pm <= 35.4:
+                return simplekml.Color.rgb(255, 255, 0)
+            elif pm <= 55.4:
+                return simplekml.Color.rgb(255, 126, 0)
+            elif pm <= 150.4:
+                return simplekml.Color.rgb(255, 0, 0)
+            elif pm <= 250.4:
+                return simplekml.Color.rgb(143, 63, 151)
+            else:
+                return simplekml.Color.rgb(126, 0, 35)
+
+        kml_pm = simplekml.Kml()
+        for _, row in map_df.iterrows():
+            pnt = kml_pm.newpoint(coords=[(row["Lon"], row["Lat"])])
+            pnt.altitude = row["AGL"]
+            pnt.altitudemode = simplekml.AltitudeMode.relativetoground
+            pnt.extrude = 1
+            pnt.description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
+            pnt.style.iconstyle.icon.href = "http://maps.google.com/mapfiles/kml/shaded_dot.png"
+            pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
+
+        kml_io_pm = BytesIO(kml_pm.kml().encode("utf-8"))
+
+        # CO2 KML
         def co2_to_kml_color(co2):
             if co2 <= 600:
                 return simplekml.Color.rgb(0, 200, 0)
@@ -294,11 +283,22 @@ try:
             pnt.style.iconstyle.color = co2_to_kml_color(row["CO2"])
 
         kml_io_co2 = BytesIO(kml_co2.kml().encode("utf-8"))
-        st.download_button(
-            label="📥 Download CO2 .KML for Google Earth",
-            data=kml_io_co2,
-            file_name="co2_session.kml",
-            mime="application/vnd.google-earth.kml+xml"
-        )
+
+        colA, colB = st.columns(2)
+        with colA:
+            st.download_button(
+                label="📄 Download PM2.5 .KML",
+                data=kml_io_pm,
+                file_name="pm25_session.kml",
+                mime="application/vnd.google-earth.kml+xml"
+            )
+        with colB:
+            st.download_button(
+                label="📄 Download CO2 .KML",
+                data=kml_io_co2,
+                file_name="co2_session.kml",
+                mime="application/vnd.google-earth.kml+xml"
+            )
+
 except Exception as e:
     st.error(f"❌ Failed to load data: {e}")
