@@ -26,8 +26,7 @@ try:
     client = gspread.authorize(creds)
 
     # === Open sheet using its unique key (reliable!)
-    # 🔁 Replace this with your actual Google Sheet ID (from the URL)
-    spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")  # <-- 👈 PASTE ID HERE
+    spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")
     worksheet = spreadsheet.worksheet("Live")
 
     # === Read full sheet data
@@ -105,12 +104,16 @@ try:
             auto_highlight=True,
         )
 
-        view_state = pdk.ViewState(
-            latitude=map_df["Lat"].mean(),
-            longitude=map_df["Lon"].mean(),
-            zoom=14,
-            pitch=45,
-        )
+        valid_coords = map_df[(map_df["Lat"] != 0) & (map_df["Lon"] != 0)]
+        if not valid_coords.empty:
+            view_state = pdk.ViewState(
+                latitude=valid_coords["Lat"].mean(),
+                longitude=valid_coords["Lon"].mean(),
+                zoom=14,
+                pitch=45,
+            )
+        else:
+            view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1)
 
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "AGL: {AGL} ft"})
         st.pydeck_chart(r)
