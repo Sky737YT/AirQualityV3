@@ -298,15 +298,16 @@ try:
 
         kml_io_co2 = BytesIO(kml_co2.kml().encode("utf-8"))
 
-        colA, colB = st.columns(2)
-        with colA:
+        colA,  = st.columns(1)
+        rowa,rowb = st.row(2)
+        with colA,rowa:
             st.download_button(
                 label="📄 Download PM2.5 .KML",
                 data=kml_io_pm,
                 file_name="pm25_session.kml",
                 mime="application/vnd.google-earth.kml+xml"
             )
-        with colB:
+        with colA,rowb:
             st.download_button(
                 label="📄 Download CO2 .KML",
                 data=kml_io_co2,
