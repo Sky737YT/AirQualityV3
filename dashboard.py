@@ -81,14 +81,28 @@ try:
     st.subheader("📈 Sensor Trends")
 
     def raw_chart_filtered(column_name, threshold=0):
+        # Friendly display names
+        label_map = {
+            "Temp": "Temperature (°F)",
+            "Hum": "Humidity (%)",
+            "CO2": "CO2 (ppm)",
+            "PM1": "PM1 (µg/m³)",
+            "PM2.5": "PM2.5 (µg/m³)",
+            "PM10": "PM10 (µg/m³)"
+        }
+
         chart_df = df[df[column_name] > threshold]
         if chart_df.empty:
-            st.warning(f"No valid data to plot for {column_name}")
+            st.warning(f"No valid data to plot for {label_map.get(column_name, column_name)}")
             return None
+
+        display_name = label_map.get(column_name, column_name)
+
         return alt.Chart(chart_df).mark_line().encode(
             x=alt.X("Timestamp:T", title="Time"),
-            y=alt.Y(f"{column_name}:Q", title=column_name)
-        ).properties(title=f"{column_name} Over Time")
+            y=alt.Y(f"{column_name}:Q", title=display_name)
+        ).properties(title=f"{display_name} Over Time")
+
 
     for col in ["CO2", "PM1", "PM2.5", "PM10", "Temp", "Hum"]:
         if col in df.columns:
@@ -228,7 +242,7 @@ try:
         """, unsafe_allow_html=True)
         st.subheader("")
         # === DOWNLOAD SECTION ===
-        st.subheader("📥 Downloads")
+        st.subheader("📥 Last Session Downloads")
 
         # PM2.5 KML
         def pm25_to_kml_color(pm):
