@@ -25,11 +25,11 @@ try:
     creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
     client = gspread.authorize(creds)
 
-    # === Open sheet using its unique key (reliable!)
+    # === Open sheet using its unique key ===
     spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")
     worksheet = spreadsheet.worksheet("Live")
 
-    # === Read full sheet data
+    # === Read full sheet data ===
     data = worksheet.get_all_values()
     headers = data[0]
     rows = data[1:]
@@ -43,11 +43,24 @@ try:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
+    # === Filter out GPS 0,0 early ===
+    df = df[(df["Lat"] != 0) & (df["Lon"] != 0)]
+
+    # === Find most recent continuous data block ===
+    df = df.sort_values("Timestamp")  # ensure it's sorted
+    df["TimeDiff"] = df["Timestamp"].diff().dt.total_seconds().fillna(0)
+    gap_threshold = 300  # 5 minutes
+    df["BlockID"] = (df["TimeDiff"] > gap_threshold).cumsum()
+    latest_block_id = df["BlockID"].iloc[-1]
+    df = df[df["BlockID"] == latest_block_id].copy()
+    df.drop(columns=["TimeDiff", "BlockID"], inplace=True)
+
+    # === Stop if still empty after filtering ===
     if df.empty or "Temp" not in df.columns:
         st.warning("Waiting for valid sensor data to arrive...")
         st.stop()
 
-    # === Live snapshot (last row only) ===
+    # === Live snapshot ===
     latest = df.iloc[-1]
     st.subheader("🌡️ Live Environment Snapshot")
     col1, col2, col3, col4, col5 = st.columns(5)
@@ -57,17 +70,17 @@ try:
     col4.metric("CO2 (ppm)", f"{latest['CO2']}")
     col5.metric("Altitude AGL (ft)", f"{latest['AGL']}")
 
-    # === Warnings
+    # === Warnings ===
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
     if latest["PM2.5"] > 35:
         st.warning(f"🌫️ Elevated PM2.5: {latest['PM2.5']} µg/m³")
 
-    # === Latest row table
+    # === Latest row table ===
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
 
-    # === Sensor trends
+    # === Sensor trends ===
     st.subheader("📈 Sensor Trends")
 
     def raw_chart_filtered(column_name, threshold=0):
@@ -86,12 +99,10 @@ try:
             if chart:
                 st.altair_chart(chart, use_container_width=True)
 
-    # === 3D GPS Position Map
+    # === 3D GPS Position Map ===
     st.subheader("📍 3D GPS Position Map (AGL Elevation)")
     map_df = df.dropna(subset=["Lat", "Lon", "AGL"])
     map_df = map_df.astype({"Lat": "float64", "Lon": "float64", "AGL": "float64"})
-    map_df = map_df[(map_df["Lat"] != 0) & (map_df["Lon"] != 0)]
-
 
     if not map_df.empty:
         layer = pdk.Layer(
@@ -106,16 +117,12 @@ try:
             auto_highlight=True,
         )
 
-        valid_coords = map_df[(map_df["Lat"] != 0) & (map_df["Lon"] != 0)]
-        if not valid_coords.empty:
-            view_state = pdk.ViewState(
-                latitude=valid_coords["Lat"].mean(),
-                longitude=valid_coords["Lon"].mean(),
-                zoom=14,
-                pitch=45,
-            )
-        else:
-            view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1)
+        view_state = pdk.ViewState(
+            latitude=map_df["Lat"].mean(),
+            longitude=map_df["Lon"].mean(),
+            zoom=14,
+            pitch=45,
+        )
 
         r = pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip={"text": "AGL: {AGL} ft"})
         st.pydeck_chart(r)
