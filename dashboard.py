@@ -182,7 +182,7 @@ try:
         kml = simplekml.Kml()
         for _, row in map_df.iterrows():
             description = f"PM2.5: {row['PM2.5']} µg/m³\nAGL: {row['AGL']} ft"
-            pnt = kml.newpoint(coords=[(row["Lon"], row["Lat"])] )
+            pnt = kml.newpoint(coords=[(row["Lon"], row["Lat"])])
             pnt.altitude = row["AGL"]
             pnt.altitudemode = simplekml.AltitudeMode.relativetoground
             pnt.extrude = 1
@@ -192,14 +192,14 @@ try:
 
         kml_io = BytesIO()
         kml.save(kml_io)
-        kml_bytes = kml_io.getvalue()
+        kml_io.seek(0)
 
         st.download_button(
-            label="📥 Download .KML for Google Earth",
-            data=kml_bytes,
+            label="📅 Download .KML for Google Earth",
+            data=kml_io,
             file_name="latest_session.kml",
             mime="application/vnd.google-earth.kml+xml"
-)
+        )
 
     else:
         st.info("No GPS data to show on the map yet.")
