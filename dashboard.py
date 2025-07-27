@@ -151,7 +151,7 @@ try:
         )
 
         r = pdk.Deck(
-            map_style="mapbox://styles/sky737/cmdlzoqfg006001s29a636diz",
+            map_style="mapbox://styles/mapbox/standard-satellite",
             layers=[layer],
             initial_view_state=view_state,
             tooltip={"text": "PM2.5: {PM2.5} µg/m³\nAGL: {AGL} ft"}
