@@ -199,7 +199,7 @@ try:
             pnt.style.iconstyle.color = pm25_to_kml_color(row["PM2.5"])
 
         kml_io = BytesIO()
-        kml.save(kml_io)
+        kml.savefp(kml_io)
         kml_io.seek(0)
 
         st.download_button(
@@ -208,3 +208,5 @@ try:
             file_name="latest_session.kml",
             mime="application/vnd.google-earth.kml+xml"
         )
+except Exception as e:
+    st.error(f"❌ Failed to load data: {e}")
