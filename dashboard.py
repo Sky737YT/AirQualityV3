@@ -178,7 +178,7 @@ try:
         view_state = pdk.ViewState(
             latitude=map_df["Lat"].mean(),
             longitude=map_df["Lon"].mean(),
-            zoom=14,
+            zoom=17,
             pitch=60,
             bearing=30
         )
@@ -218,7 +218,7 @@ try:
         view_state_co2 = pdk.ViewState(
             latitude=co2_df["Lat"].mean(),
             longitude=co2_df["Lon"].mean(),
-            zoom=14,
+            zoom=17,
             pitch=60,
             bearing=30
         )
