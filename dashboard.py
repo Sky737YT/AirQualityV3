@@ -15,7 +15,7 @@ st_autorefresh(interval=2500, key="datarefresh")
 # === Page config ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
 st.title("📡 Real-Time LoRa Sensor Dashboard")
-st.caption("Auto-refreshes every 5 seconds from Google Sheets (via API)")
+st.caption("Auto-refreshes every 2.5 seconds from Google Sheets (via API)")
 
 try:
     # === Load service account from Streamlit Cloud secrets ===
