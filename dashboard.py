@@ -72,8 +72,8 @@ try:
 
     if latest["CO2"] > 1000:
         st.error(f"⚠️ High CO2 Detected: {latest['CO2']} ppm")
-    if latest["PM2_5"] > 35:
-        st.warning(f"⚠️ Elevated PM2.5: {latest['PM2_5']} µg/m³")
+    if latest["PM2_5"] > 55.5:
+        st.error(f"⚠️ High PM2.5 Detected: {latest['PM2_5']} µg/m³")
 
     st.subheader("🧾 Latest Sensor Rows")
     st.dataframe(df.tail(1).reset_index(drop=True), use_container_width=True)
