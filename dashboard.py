@@ -10,7 +10,7 @@ import simplekml
 from io import BytesIO
 
 # === Auto-refresh every 5 seconds ===
-st_autorefresh(interval=5000, key="datarefresh")
+st_autorefresh(interval=2500, key="datarefresh")
 
 # === Page config ===
 st.set_page_config(page_title="LoRa Sensor Dashboard", layout="wide")
