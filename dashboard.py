@@ -547,7 +547,7 @@ try:
     with cc1:
         use_metar = st.checkbox("Use METAR wind", value=True)
     with cc2:
-        st.caption(f"Nearest station: **{nearest_icao or 'N/A'}** (~{nearest_dist* 0.621371:.1f} km)")
+        st.caption(f"Nearest station: **{nearest_icao or 'N/A'}** (~{nearest_dist* 0.621371:.1f} mi)")
     with cc3:
         if metar_text:
             st.caption(f"METAR {metar_used}: {metar_text}")
