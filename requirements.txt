@@ -6,3 +6,4 @@ streamlit-autorefresh
 gspread
 google-auth
 simplekml
+numpy
