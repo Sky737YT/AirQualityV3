@@ -9,6 +9,8 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 import simplekml
+import re
+import requests
 from io import BytesIO
 
 # === Auto-refresh every 5 seconds ===
