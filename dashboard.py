@@ -365,6 +365,39 @@ try:
         dlat = d_north_m / 111320.0
         dlon = d_east_m / (40075000.0 * np.cos(np.radians(lat0)) / 360.0)
         return dlat, dlon
+    def estimate_half_life_minutes(df, bg_co2=420, bg_pm=8.0, window_sec=180):
+
+        if df.empty or "Timestamp" not in df.columns:
+            return None
+
+        tail = df.sort_values("Timestamp")
+        tmax = tail["Timestamp"].max()
+        tail = tail[tail["Timestamp"] >= (tmax - pd.Timedelta(seconds=window_sec))].copy()
+        if tail.empty or not {"CO2","PM2_5"}.issubset(tail.columns):
+            return None
+
+        tail["co2_excess"] = (tail["CO2"] - bg_co2).clip(lower=0)
+        tail["pm_excess"]  = (tail["PM2_5"] - bg_pm).clip(lower=0)
+        tail["signal"] = (tail["co2_excess"] / 200.0) + (tail["pm_excess"] / 35.0)
+        tail = tail[tail["signal"] > 0.05]
+        if len(tail) < 8:
+            return None
+
+        t0 = tail["Timestamp"].min()
+        tail["tsec"] = (tail["Timestamp"] - t0).dt.total_seconds()
+        y = np.log(tail["signal"].values)
+        x = tail["tsec"].values
+
+        A = np.vstack([np.ones_like(x), -x]).T  # ln(signal) = a - λ t
+        try:
+            coef, *_ = np.linalg.lstsq(A, y, rcond=None)
+            lam = coef[1]
+            if lam <= 0:
+                return None
+            t_half = np.log(2) / lam / 60.0
+            return float(np.clip(t_half, 5.0, 30.0))
+        except Exception:
+            return None
 
     def simulate_plume(points, wind_deg, wind_ms, horizon_min=15, step_s=10,
                     base_sigma_m=15, spread_per_km=40, decay_half_life_min=12):
@@ -471,7 +504,7 @@ try:
 
     m_dir, m_ms = parse_wind_from_metar(metar_text) if (use_metar and metar_text) else (None, None)
 
-    cc4, cc5, cc6, cc7 = st.columns(4)
+    cc4, cc5, cc6 = st.columns(3)
     with cc4:
         wind_dir_deg = st.number_input(
             "Wind Dir (° FROM)", min_value=0, max_value=359,
@@ -485,9 +518,6 @@ try:
         )
     with cc6:
         horizon_min = st.slider("Forecast Horizon (min)", 5, 45, st.session_state.get("horizon_min", 15))
-    with cc7:
-        decay_t12 = st.slider("Half-life (min)", 5, 60, st.session_state.get("decay_t12", 12),
-                            help="Decay of anomaly over time")
 
     cc8, cc9, cc10, cc11 = st.columns(4)
     with cc8:
@@ -498,6 +528,20 @@ try:
         w_co2 = st.slider("Weight: CO₂", 0.0, 1.0, 0.6)
     with cc11:
         w_pm  = st.slider("Weight: PM2.5", 0.0, 1.0, 0.4)
+
+    # --- Auto-seed half-life (uses your estimator; falls back to wind heuristic) ---
+    auto_t12 = estimate_half_life_minutes(df, bg_co2=bg_co2, bg_pm=bg_pm)
+    if auto_t12 is None:
+        L = 150.0  # meters (distance a coherent pocket typical persists)
+        k = 2.5    # 2–3: mixing factor (lower = faster mixing)
+        seed = (k * (L / max(wind_ms, 0.1))) / 60.0  # seconds -> minutes
+        auto_t12 = float(np.clip(seed, 5.0, 30.0))
+
+    decay_t12 = st.slider(
+        "Half-life (min)", 5, 60, int(round(auto_t12)),
+        help="Time for anomaly to halve due to mixing/dispersion"
+    )
+
 
     # Persist last chosen values to reduce flicker
     st.session_state["wind_dir_deg"] = wind_dir_deg
