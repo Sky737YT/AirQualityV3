@@ -31,13 +31,65 @@ try:
     creds = Credentials.from_service_account_info(service_account_info, scopes=scopes)
     client = gspread.authorize(creds)
 
-    # === Open sheet ===
+        # === Open sheet with session caching ===
     spreadsheet = client.open_by_key("1b_8TWrMPYctgDK6_LNe0LHpWybadBLYf0uNBwBt_sKs")
     worksheet = spreadsheet.worksheet("Live")
-    data = worksheet.get_all_values()
-    headers = data[0]
-    rows = data[1:]
-    df = pd.DataFrame(rows, columns=headers)
+
+    # Get headers
+    headers = worksheet.row_values(1)
+    col_count = len(headers)
+
+    # Helper: convert col index to A1 letter
+    def colnum_to_name(n: int) -> str:
+        name = ""
+        while n > 0:
+            n, r = divmod(n - 1, 26)
+            name = chr(65 + r) + name
+        return name
+
+    end_col = colnum_to_name(col_count)
+
+    # ---- SESSION DETECTION ----
+    all_values = worksheet.get_all_values()
+    rows = all_values[1:]  # skip header
+    df_all = pd.DataFrame(rows, columns=headers)
+
+    # Find the index of the latest session start
+    # Session start = row where Timestamp jumps backwards or big gap in time
+    df_all["Timestamp"] = pd.to_datetime(df_all["Timestamp"], errors="coerce")
+    session_breaks = df_all["Timestamp"].diff().dt.total_seconds().fillna(0)
+    session_start_idx = session_breaks[session_breaks < 0].index.max()
+    if pd.isna(session_start_idx):
+        session_start_idx = 0
+    else:
+        session_start_idx += 1  # move to first row of latest session
+
+    # ---- CACHING ----
+    if "cached_df" not in st.session_state or "session_start" not in st.session_state \
+    or st.session_state.session_start != session_start_idx:
+        # First load for this session → grab all rows from session start
+        start_row = session_start_idx + 2  # +2 to skip header & 0-index to 1-index
+        last_row = len(all_values)
+        rng = f"A{start_row}:{end_col}{last_row}"
+        data = worksheet.get_values(rng)
+        st.session_state.cached_df = pd.DataFrame(data, columns=headers)
+        st.session_state.session_start = session_start_idx
+    else:
+        # Only fetch new rows
+        cached_len = len(st.session_state.cached_df)
+        start_row = session_start_idx + cached_len + 2
+        last_row = len(all_values)
+        if start_row <= last_row:
+            rng = f"A{start_row}:{end_col}{last_row}"
+            new_data = worksheet.get_values(rng)
+            if new_data:
+                df_new = pd.DataFrame(new_data, columns=headers)
+                st.session_state.cached_df = pd.concat(
+                    [st.session_state.cached_df, df_new], ignore_index=True
+                )
+
+    # Final DataFrame for plotting
+    df = st.session_state.cached_df.copy()
     
 
     # === Clean & convert ===
