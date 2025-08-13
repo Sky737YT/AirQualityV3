@@ -501,7 +501,7 @@ try:
         center_lat, center_lon = 39.8729, -75.2437  # fallback near KPHL
 
     # Small built‑in station set (add more as you travel)
-        STATIONS = [
+    STATIONS = [
         # Mid-Atlantic / Northeast core
         ("KPHL", 39.872, -75.243), ("KPNE", 40.083, -75.016), ("KTTN", 40.277, -74.813),
         ("KILG", 39.678, -75.606), ("KACY", 39.457, -74.578), ("KABE", 40.652, -75.440),
